@@ -1,5 +1,6 @@
+import std/with
 type
-    asn1Kind* = enum
+    Asn1Kind* = enum
         Zero             = 0
         Boolean          = 1
         Integer          = 2
@@ -26,12 +27,15 @@ type
         Context     = 128
         Private     = 192
 
-    Value* = object
-        case kind*: asn1Kind
-            of Sequence:
-                children*: seq[Value]
-            else:
-               value*: string
+    Element* = object
+        kind*: Asn1Kind
+        value*: string
         class*: Classes
         encoding*: Encoding
         length*: int
+
+proc newElement*(kind: Asn1Kind, value: string): Element =
+    with result:
+        kind   = kind
+        value  = value
+        length = result.value.len()

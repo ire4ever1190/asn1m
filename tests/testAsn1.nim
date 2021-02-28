@@ -1,26 +1,34 @@
 import unittest
 import asn1m/[types, utils, encoder]
-import base64
-
+import bigints
 include asn1m
 
 
 suite "Reading tag Bytes":
+    template testClass(input: int, checkClass: Classes): untyped =
+        var element: Element
+        discard input.readTag(element)
+        check element.class == checkClass
+                
     test "Reading tag kind":
-        check 0b00000010.readTag().kind == Integer
+        var element: Element
+        discard 0b00000010.readTag(element)
+        check element.kind == Integer
 
     test "Reading Universal class":
-        check 0b00000000.readTag().class == Universal
+        # check 0b00000000.readTag().class == Universal
+        testClass(0b00000010, Universal)
+        # check 0b00000000.readTag().class == Universal
 
     test "Reading Application class":
-        check 0b01000000.readTag().class == Application
-
+        testClass(0b01000000, Application)
+        
     test "Reading Context class":
-        check 0b10000000.readTag().class == Context
-
+        testClass(0b10000000, Context)
+        
     test "Reading Private class":
-        check 0b11000000.readTag().class == Private
-
+        testClass(0b11000000, Private)
+        
 suite "Reading length":
     test "Short form":
         let input = chr(4) & chr(5)
@@ -42,24 +50,36 @@ type
 
 suite "Utils":
     test "Encoded length short form":
-        let value = Value(kind: Integer, length: 5)
-        check value.getEncodedLength == $chr(5)
+        let element = Element(kind: Integer, length: 5)
+        check element.getEncodedLength == $chr(5)
 
     test "Encoded length long form":
-        let value = Value(kind: Integer, length: 290)
+        let element = Element(kind: Integer, length: 290)
         var index = 0
-        check value.getEncodedLength().readLength(index) == 290
+        check element.getEncodedLength().readLength(index) == 290
+
+    test "BigInt or":
+        let
+            a = 0b1010.initBigInt()
+            b = 0b0101.initBigInt()
+        check (a or b) == 0b1111.initBigInt()
+
+    test "BigInt and":
+        let
+            a = 0b0110.initBigInt()
+            b = 0b1101.initBigInt()
+        check (a and b) == 0b0100.initBigInt()
 
 suite "Encoding":
     test "Sequence with an integer":
         var sequence = newSequence()
         sequence.add(9)
         check:
-            sequence.children.len == 1
-            sequence.length       == 5
+            sequence.length == 3
 
     test "Sequence in a sequence":
         var seq1 = newSequence()
+        check seq1.length == 0
         seq1.add(11)
         var seq2 = newSequence()
         seq2.add(9)
@@ -67,24 +87,24 @@ suite "Encoding":
         seq2.add(14)
         seq1.add(seq2)
         check:
-            seq1.children.len == 2
-            seq2.children.len == 3
-            seq1.length       == 16
-        
+            seq1.length == 14
+            seq1.getTotalLength() == 16
+
+    test "Sequence with Big Int":
+        var sequence = newSequence()
+        sequence.add(initBigInt(123456))
+        check sequence.length == 6
+
 suite "Decoding":
     test "Basic integer":
         let input = chr(2) & chr(1) & chr(69)
-        let output = input.readValue()
-        check output.value.value[0] == chr(69)
+        var element: Element
+        discard input.readElement(element)
+        check element.value[0] == chr(69)
 
-    test "Real world example":
-        # decode a PEM public certificate
-        let data = """MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA9S1c0E3lKIqTiX+ewDED
-        7Nq4V/1DYaFNJbxL1BxfFCiMKz+K1+u2GlAewQ3+0f48MkmawDHqR+zkSwTkn9wB
-        4zHCZUEYwwHL+288WmeUFMbp9HxPNgIPnx2yirvHrrYTgTD7/QnDAIVOFg7sJyv9
-        0MKMvb+ke+Rvmacp8SHyJRbMGBvYd9V891qEmYApv921mRC0SBbmNxPxAcuv3W7O
-        kYEr4wtmCBVRn7U/N+fO0KXcJSklS9tsKfJHD8/jvfCAYYeBPPOPb2e2QsfOyWjv
-        GUQPtXDbyZXAF521PsQ9i03RSgqSBtRj+U2sNjpm/wsNV/bzt/XVoPhYW115xiDg
-        JQIDAQAB""".decode()
-        echo data.deco()
-        echo data.readValue()
+    test "Big integer":
+        var sequence = newSequence()
+        sequence.add(initBigInt(123456))
+        var element: Element
+        discard sequence.value.readElement(element)        
+        check element.readInt() == initBigInt(123456)
