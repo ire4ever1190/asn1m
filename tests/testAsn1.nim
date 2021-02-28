@@ -16,9 +16,7 @@ suite "Reading tag Bytes":
         check element.kind == Integer
 
     test "Reading Universal class":
-        # check 0b00000000.readTag().class == Universal
         testClass(0b00000010, Universal)
-        # check 0b00000000.readTag().class == Universal
 
     test "Reading Application class":
         testClass(0b01000000, Application)
@@ -28,6 +26,19 @@ suite "Reading tag Bytes":
         
     test "Reading Private class":
         testClass(0b11000000, Private)
+
+    test "Reading Primitive tag":
+        var element: Element
+        discard 0b00000000.readTag(element)
+        check element.encoding == Primitive
+        discard 0b00100000.readTag(element)
+        check element.encoding != Primitive
+        
+    test "Reading Constructed tag":
+        var element: Element
+        discard 0b00100000.readTag(element)
+        check element.encoding == Constructed
+        
         
 suite "Reading length":
     test "Short form":
