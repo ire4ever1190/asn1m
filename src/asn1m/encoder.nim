@@ -53,14 +53,18 @@ proc add*(node: var Element, value: int8) =
     
 proc add*(node: var Element, value: Int) =
     var value = value
-    var result = $chr(0) # Zero means that it is of arbitary precision
+    var result = ""
+    var index = 0
+    if value > int.high:
+        index = 1
+        result = $chr(0) # Zero means that it is of arbitary precision
+        
     while true:
         let number = (value and 0b11111111).toInt()
-        if number == 0:
+        if value == 0:
             break
-        result.insert($number.chr(), 1)
+        result.insert($number.chr(), index)
         value = value shr 8
-            
     let newNode = newElement(Integer, result)
     node.add(newNode)
     

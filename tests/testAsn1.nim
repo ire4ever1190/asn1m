@@ -72,10 +72,12 @@ suite "Utils":
 suite "Encoding":
     test "Sequence with an integer":
         var sequence = newSequence()
+        sequence.encoding = Constructed
         sequence.add(9)
         check:
             sequence.length == 3
-
+        echo sequence.encode().deco()
+        
     test "Sequence in a sequence":
         var seq1 = newSequence()
         check seq1.length == 0
@@ -92,7 +94,26 @@ suite "Encoding":
     test "Sequence with Big Int":
         var sequence = newSequence()
         sequence.add(123456.newInt())
-        check sequence.length == 6
+        check sequence.length == 5
+
+    test "Sequence with Big Big int":
+        var sequence = newSequence()
+        var num = newInt(0)
+        num.inc culong.high
+        num.inc culong.high
+        num.inc culong.high
+        num.inc culong.high
+
+        var num2 = newInt(65537)
+        
+        sequence.add(num)
+        sequence.add(num2)
+        var element: Element
+        var start = sequence.value.readElement(element)
+        check element.readInt() == num
+        discard sequence.value.readElement(element, start = start)
+        # echo sequence.value.deco()
+        check element.readInt() == 65537.newInt()
 
     test "Sequence with Object identifier":
         var sequence = newSequence()
