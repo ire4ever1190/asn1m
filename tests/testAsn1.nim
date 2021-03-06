@@ -1,6 +1,6 @@
 import unittest
-import asn1m/[types, utils, encoder]
-import bigints
+import asn1m/[types, utils, encoder,  simple, decoder]
+import bignum
 include asn1m
 
 
@@ -69,18 +69,6 @@ suite "Utils":
         var index = 0
         check element.getEncodedLength().readLength(index) == 290
 
-    test "BigInt or":
-        let
-            a = 0b1010.initBigInt()
-            b = 0b0101.initBigInt()
-        check (a or b) == 0b1111.initBigInt()
-
-    test "BigInt and":
-        let
-            a = 0b0110.initBigInt()
-            b = 0b1101.initBigInt()
-        check (a and b) == 0b0100.initBigInt()
-
 suite "Encoding":
     test "Sequence with an integer":
         var sequence = newSequence()
@@ -103,8 +91,17 @@ suite "Encoding":
 
     test "Sequence with Big Int":
         var sequence = newSequence()
-        sequence.add(initBigInt(123456))
+        sequence.add(123456.newInt())
         check sequence.length == 6
+
+    test "Sequence with Object identifier":
+        var sequence = newSequence()
+        sequence.add(Asn1ObjectIdentifier("1.2.840.113549.1.1.1"))
+        # var element: Element
+        # Basically tests reading OID as well which isn't good
+        # discard sequence.value.readElement(element)
+        # check element.readOID() == "1.2.840.113549.1.1.1"
+        
 
 suite "Decoding":
     test "Basic integer":
@@ -115,7 +112,39 @@ suite "Decoding":
 
     test "Big integer":
         var sequence = newSequence()
-        sequence.add(initBigInt(123456))
+        sequence.add(123456.newInt())
         var element: Element
         discard sequence.value.readElement(element)        
-        check element.readInt() == initBigInt(123456)
+        check element.readInt() == 123456.newInt()
+
+    test "Object Identifier":
+        var element: Element
+        discard """
+        MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAM/0IWKSkgYnxCVIvnj9jW75HKq67auL
+        PCf5k/5U/QYATtcswEAxtEI+KtEyM6ZsiZGy6a4fD9gleHT5DhpefKMCAwEAAQ==
+        """.decode().readElement(element)
+        discard element.value.readElement(element)
+        discard element.value.readElement(element)
+        check element.readOID() == "1.2.840.113549.1.1.1"
+
+suite "Simple api":
+    let stream = newAsn1Reader("""
+            MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAM/0IWKSkgYnxCVIvnj9jW75HKq67auL
+            PCf5k/5U/QYATtcswEAxtEI+KtEyM6ZsiZGy6a4fD9gleHT5DhpefKMCAwEAAQ==
+            """.decode())
+
+    setup:
+        stream.seek(0)
+
+    test "Read sequence":
+        discard stream.readSeq()
+
+    test "Read object identifier":
+        let currentSeq = stream.readSeq().readSeq()
+        check currentSeq.readOID() == "1.2.840.113549.1.1.1" 
+
+    test "Reading null":
+        let currentSeq = stream.readSeq().readSeq()
+        discard currentSeq.readOID()
+        currentSeq.readNull()
+

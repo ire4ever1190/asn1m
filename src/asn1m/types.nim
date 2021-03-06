@@ -1,5 +1,10 @@
 import std/with
+import strutils
+
 type
+
+    Asn1ObjectIdentifier* = distinct string
+    
     Asn1Kind* = enum
         Zero             = 0
         Boolean          = 1
@@ -33,6 +38,10 @@ type
         class*: Classes
         encoding*: Encoding
         length*: int
+
+proc split*(x: Asn1ObjectIdentifier, y: char, maxsplit: int = -1): seq[string] {.borrow.}
+
+# proc parseInt*(x: Asn1ObjectIdentifier): int {.borrow.}
 
 proc newElement*(kind: Asn1Kind, value: string): Element =
     with result:

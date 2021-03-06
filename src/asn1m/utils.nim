@@ -1,39 +1,11 @@
 import types
 import bitops
-import bigints
+import bignum
+import strutils
 
-proc `or`*(a, b: BigInt): BigInt =
-    ## Implements bitwise or for big int in the most scuffed way
-    var
-        biggest  = ""
-        smallest = ""
-    if a > b:
-        biggest = a.toString(base = 2)
-        smallest = b.toString(base = 2)
-    else:
-        biggest = b.toString(base = 2)
-        smallest = a.toString(base = 2)
-    for i in 1..len(smallest):
-        if smallest[^i] == '1' or biggest[^i] == '1':
-            biggest[^i] = '1'
-    result = initBigInt(biggest, base = 2)
-
-proc `and`*(a, b: BigInt): BigInt =
-    ## Implements bitwise and for big int in the most scuffed way
-    var
-        biggest  = ""
-        smallest = ""
-    if a > b:
-        biggest = a.toString(base = 2)
-        smallest = b.toString(base = 2)
-    else:
-        biggest = b.toString(base = 2)
-        smallest = a.toString(base = 2)
-    for i in 1..len(smallest):
-        if not (smallest[^i] == '1' and biggest[^i] == '1'):
-            smallest[^i] = '0'
-    result = initBigInt(smallest, base = 2)
-
+proc deco*(input: string): string = 
+    for chr in input:
+        result &= $ord(chr) & " "
 
 proc getEncodedLength*(value: Element): string =
     ## Returns the length of the value in encoded form
@@ -60,9 +32,3 @@ proc getTotalLength*(value: Element): int =
         result = 1 + 1 + value.length
     else:
         result = 1 + value.getEncodedLength().len() + value.length
-
-proc encode*(element: Element): string =
-    ## Converts an element to it's byte array form
-    result = element.kind.ord().chr().`$`
-    result &= element.getEncodedLength()
-    result &= element.value
